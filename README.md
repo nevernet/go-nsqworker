@@ -4,7 +4,7 @@ include one producer and consumer wrapper.
 
 # demo
 
-```
+```golang
 func main() {
 	var err error
 	defer func() {
