@@ -2,7 +2,7 @@ package nsqworker
 
 import "github.com/bitly/go-nsq"
 
-type CqTaskConsumer struct {
+type NsqConsumer struct {
 	Addr            string
 	LookupdAddr     string
 	Topic           string
@@ -10,13 +10,13 @@ type CqTaskConsumer struct {
 	consumer        []*nsq.Consumer
 }
 
-var cqConsumer *CqTaskConsumer = &CqTaskConsumer{}
+var consumer *NsqConsumer = &NsqConsumer{}
 
-func GetConsumer() *CqTaskConsumer {
-	return cqConsumer
+func GetConsumer() *NsqConsumer {
+	return consumer
 }
 
-func (this *CqTaskConsumer) Start() error {
+func (this *NsqConsumer) Start() error {
 	cfg := nsq.NewConfig()
 
 	for k, v := range WorkerMap {
@@ -35,7 +35,7 @@ func (this *CqTaskConsumer) Start() error {
 	return nil
 }
 
-func (this *CqTaskConsumer) Stop() {
+func (this *NsqConsumer) Stop() {
 	for _, v := range this.consumer {
 		v.Stop()
 		<-v.StopChan

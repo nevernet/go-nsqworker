@@ -5,18 +5,18 @@ import (
 	"github.com/nevernet/logger"
 )
 
-type CqTaskProducer struct {
+type NsqProducer struct {
 	Addr     string
 	Producer *nsq.Producer
 }
 
-var cqProdcuer *CqTaskProducer = &CqTaskProducer{}
+var producer *NsqProducer = &NsqProducer{}
 
-func GetProducer() *CqTaskProducer {
-	return cqProdcuer
+func GetProducer() *NsqProducer {
+	return producer
 }
 
-func (this *CqTaskProducer) Start() error {
+func (this *NsqProducer) Start() error {
 	var err error
 	cfg := nsq.NewConfig()
 	this.Producer, err = nsq.NewProducer(this.Addr, cfg)
@@ -27,11 +27,11 @@ func (this *CqTaskProducer) Start() error {
 	return nil
 }
 
-func (this *CqTaskProducer) Stop() {
+func (this *NsqProducer) Stop() {
 	this.Producer.Stop()
 }
 
-func (this *CqTaskProducer) Publish(topic string, body []byte) error {
+func (this *NsqProducer) Publish(topic string, body []byte) error {
 	err := this.Producer.Publish(topic, body)
 	if err != nil {
 		logger.Error("publish message error:[%s],[%s], [%s]", topic, string(body), err.Error())
