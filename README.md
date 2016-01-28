@@ -55,3 +55,47 @@ func main() {
 
 }
 ```
+
+create directory  `workers` in your project root folder, for example:
+`mkdir workers`
+
+create bootstrap: workers/bootstrap.go, for example
+
+```go
+package workers
+
+//just for placeholder, in order to init the package workers, this method will be called in main function
+func Start() {
+
+}
+
+```
+
+Create custom worker, for example: CqMailWorker
+`creaet file workers/cq_mail_worker.go`
+
+```go
+package workers
+
+import (
+	"github.com/bitly/go-nsq"
+	"github.com/nevernet/go-nsqworker"
+	"github.com/nevernet/logger"
+)
+
+type CqMailWorker struct {
+}
+
+func init() {
+	//register your worker
+	nsqworker.RegisterWorker("cqMail", &CqMailWorker{})
+}
+
+//implement HandleMessage
+func (this *CqMailWorker) HandleMessage(message *nsq.Message) error {
+	logger.Error("handler:[%s], message:[%s]", "cqMail", string(message.Body))
+	return nil
+}
+
+```
+
