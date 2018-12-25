@@ -15,45 +15,54 @@
 package nsqworker
 
 import (
-	"github.com/bitly/go-nsq"
 	"github.com/nevernet/logger"
+	"github.com/nsqio/go-nsq"
 )
 
 // NsqProducer type
 type NsqProducer struct {
-	Addr     string
+	config   *nsq.Config
 	Producer *nsq.Producer
 }
 
-var producer = &NsqProducer{}
+var (
+	producer = &NsqProducer{}
+)
 
-// GetProducer get producer
-func GetProducer() *NsqProducer {
-	return producer
-}
-
-// Start producer
-func (pds *NsqProducer) Start() error {
+// NewNsqProducer get producer
+func NewNsqProducer(addr string, config *nsq.Config) (*NsqProducer, error) {
 	var err error
-	cfg := nsq.NewConfig()
-	pds.Producer, err = nsq.NewProducer(pds.Addr, cfg)
+	nsq, err := nsq.NewProducer(addr, config)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	producer.Producer = nsq
+	producer.config = config
+
+	return producer, nil
 }
 
 // Stop producer
-func (pds *NsqProducer) Stop() {
-	pds.Producer.Stop()
+func (p *NsqProducer) Stop() {
+	p.Producer.Stop()
 }
 
 // Publish producer
-func (pds *NsqProducer) Publish(topic string, body []byte) error {
-	err := pds.Producer.Publish(topic, body)
+func (p *NsqProducer) Publish(topic string, body []byte) error {
+	err := p.Producer.Publish(topic, body)
 	if err != nil {
 		logger.Error("publish message error:[%s],[%s], [%s]", topic, string(body), err.Error())
+	}
+
+	return err
+}
+
+// MultiPublish 批量发布
+func (p *NsqProducer) MultiPublish(topic string, body [][]byte) error {
+	err := p.Producer.MultiPublish(topic, body)
+	if err != nil {
+		logger.Error("MultiPublish message error:[%s], [%s]", topic, err.Error())
 	}
 
 	return err

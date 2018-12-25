@@ -17,20 +17,26 @@ package nsqworker
 import (
 	"fmt"
 
-	"github.com/bitly/go-nsq"
+	"github.com/nsqio/go-nsq"
 )
 
-// NsqWorker is interface
-type NsqWorker interface {
+// NsqHandler is interface
+type NsqHandler interface {
 	HandleMessage(*nsq.Message) error
 }
 
-var workerMap = make(map[string]NsqWorker)
+var handlerMap = make(map[string]NsqHandler)
 
-// RegisterWorker is func for register the worker
-func RegisterWorker(workerName string, worker NsqWorker) {
-	if _, ok := workerMap[workerName]; ok {
-		panic(fmt.Sprintf("worker name:[%s] has been duplicated.", workerName))
+// RegisterHandler is func for register the handler
+func RegisterHandler(handlerName string, handler NsqHandler) {
+	if _, ok := handlerMap[handlerName]; ok {
+		panic(fmt.Sprintf("worker name:[%s] has been registered.", handlerName))
 	}
-	workerMap[workerName] = worker
+
+	handlerMap[handlerName] = handler
+}
+
+// GetHandlers 获取所有已经注册的handlers
+func GetHandlers() map[string]NsqHandler {
+	return handlerMap
 }

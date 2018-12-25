@@ -14,46 +14,47 @@
 
 package nsqworker
 
-import "github.com/bitly/go-nsq"
+import (
+	"github.com/nsqio/go-nsq"
+)
 
-// NsqConsumer type
-type NsqConsumer struct {
+// NsqConsumerConfig ...
+type NsqConsumerConfig struct {
 	Addr            string
 	LookupdAddr     string
 	Topic           string
 	ConCurrentCount int
-	consumer        []*nsq.Consumer
 }
 
-var consumer = &NsqConsumer{}
-
-// GetConsumer get instance of consumer
-func GetConsumer() *NsqConsumer {
-	return consumer
+// NsqConsumer type
+type NsqConsumer struct {
+	consumers []*nsq.Consumer
 }
 
-// Start the consumer
-func (cns *NsqConsumer) Start() error {
-	cfg := nsq.NewConfig()
+var (
+	consumer = &NsqConsumer{}
+)
 
+// NewNsqConsumer get instance of consumer
+func NewNsqConsumer(config *NsqConsumerConfig, nsqConfig *nsq.Config) *NsqConsumer {
+	// 注册每一个worker
 	for k, v := range workerMap {
-		consumer, err := nsq.NewConsumer(cns.Topic, k, cfg)
+		nsqConsumer, err := nsq.NewConsumer(config.Topic, k, nsqConfig)
 		if err != nil {
 			panic(err.Error())
 		}
-		consumer.AddConcurrentHandlers(v, cns.ConCurrentCount)
-		consumer.ChangeMaxInFlight(cns.ConCurrentCount)
-		consumer.ConnectToNSQD(cns.Addr)
+		nsqConsumer.AddConcurrentHandlers(v, config.ConCurrentCount)
+		nsqConsumer.ChangeMaxInFlight(config.ConCurrentCount)
+		nsqConsumer.ConnectToNSQD(config.Addr)
 
-		cns.consumer = append(cns.consumer, consumer)
+		consumer.consumers = append(consumer.consumers, nsqConsumer)
 	}
-
-	return nil
+	return consumer
 }
 
 // Stop consumer
-func (cns *NsqConsumer) Stop() {
-	for _, v := range cns.consumer {
+func (w *NsqConsumer) Stop() {
+	for _, v := range w.consumers {
 		v.Stop()
 		<-v.StopChan
 	}
