@@ -30,17 +30,22 @@ var (
 )
 
 // NewNsqProducer get producer
-func NewNsqProducer(addr string, config *nsq.Config) (*NsqProducer, error) {
+func NewNsqProducer(addr string, config *nsq.Config) *NsqProducer {
 	var err error
 	nsq, err := nsq.NewProducer(addr, config)
 	if err != nil {
-		return nil, err
+		panic(err.Error())
 	}
 
 	producer.Producer = nsq
 	producer.config = config
 
-	return producer, nil
+	return producer
+}
+
+// GetProducer 返回producer
+func GetProducer() *NsqProducer {
+	return producer
 }
 
 // Stop producer

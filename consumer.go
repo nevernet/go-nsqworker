@@ -35,10 +35,22 @@ var (
 	consumer = &NsqConsumer{}
 )
 
+// NewNsqConsumerConfig ...
+func NewNsqConsumerConfig(addr, lookupdAddr, topic string, conCurrentCount int) *NsqConsumerConfig {
+	config := &NsqConsumerConfig{
+		Addr:            addr,
+		LookupdAddr:     lookupdAddr,
+		Topic:           topic,
+		ConCurrentCount: conCurrentCount,
+	}
+
+	return config
+}
+
 // NewNsqConsumer get instance of consumer
 func NewNsqConsumer(config *NsqConsumerConfig, nsqConfig *nsq.Config) *NsqConsumer {
 	// 注册每一个worker
-	for k, v := range workerMap {
+	for k, v := range GetHandlers() {
 		nsqConsumer, err := nsq.NewConsumer(config.Topic, k, nsqConfig)
 		if err != nil {
 			panic(err.Error())

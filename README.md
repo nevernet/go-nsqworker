@@ -1,6 +1,6 @@
-# A golang nsq consumer wrapper. 
+# A golang nsq consumer wrapper.
 
-include one producer and consumer wrapper. 
+include one producer and consumer wrapper.
 
 # demo
 
@@ -17,27 +17,11 @@ func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	workers.Start()
-
-	producer := nsqworker.GetProducer()
-	producer.Addr = conf.Nsq.Addr
-	err = producer.Start()
-	if err != nil {
-		panic(err.Error())
-		return
-	}
-	logger.Info("cq producer initialized.")
-	consumer := nsqworker.GetConsumer()
-	consumer.Addr = conf.Nsq.Addr
-	consumer.LookupdAddr = conf.Nsq.LookupdAddr
-	consumer.Topic = conf.Nsq.Topic
-	consumer.ConCurrentCount = conf.Nsq.ConsumerCount
-	err = consumer.Start()
-	if err != nil {
-		panic(err.Error())
-		return
-	}
-	logger.Info("cq consumer initialized.")
+	producer := nsqworker.NewNsqProducer(conf.Nsq.Addr, nsq.NewConfig())
+	logger.Info("nsq producer initialized.")
+	nsqConfig := nsqworker.NewNsqConsumerConfig(conf.Nsq.Addr, conf.Nsq.LookupdAddr, conf.Nsq.Topic, conf.Nsq.ConsumerCount)
+	consumer := nsqworker.NewNsqConsumer(nsqConfig, nsq.NewConfig())
+	logger.Info("nsq consumer initialized.")
 
 	exitChan := make(chan struct{})
 	signalChan := make(chan os.Signal, 1)
@@ -48,21 +32,21 @@ func main() {
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 	<-exitChan
 
-	nsqworker.GetProducer().Stop()
-	logger.Info("cq producer stopped.")
-	nsqworker.GetConsumer().Stop()
-	logger.Info("cq consumer stopped.")
+	producer.Stop()
+	logger.Info("producer stopped.")
+	consumer.Stop()
+	logger.Info("consumer stopped.")
 
 }
 ```
 
-create directory  `workers` in your project root folder, for example:
-`mkdir workers`
+create directory  `hanlders` in your project root folder, for example:
+`mkdir handlers`
 
-create bootstrap: workers/bootstrap.go, for example
+create bootstrap: handlers/bootstrap.go, for example
 
 ```go
-package workers
+package handlers
 
 //just for placeholder, in order to init the package workers, this method will be called in main function
 func Start() {
@@ -71,31 +55,30 @@ func Start() {
 
 ```
 
-Create custom worker, for example: CqMailWorker
-`creaet file workers/cq_mail_worker.go`
+Create custom handler, for example: CqMailHandler
+`creaet file handlers/cq_mail_handler.go`
 
 ```go
-package workers
+package handlers
 
 import (
-	"github.com/bitly/go-nsq"
+	"github.com/nsqio/go-nsq"
 	"github.com/nevernet/go-nsqworker"
 	"github.com/nevernet/logger"
 )
 
-type CqMailWorker struct {
+type CqMailHandler struct {
 }
 
 func init() {
 	//register your worker
-	nsqworker.RegisterWorker("cqMail", &CqMailWorker{})
+	nsqworker.RegisterHandler("cqMail", &CqMailHandler{})
 }
 
 //implement HandleMessage
-func (this *CqMailWorker) HandleMessage(message *nsq.Message) error {
+func (this *CqMailHandler) HandleMessage(message *nsq.Message) error {
 	logger.Error("handler:[%s], message:[%s]", "cqMail", string(message.Body))
 	return nil
 }
 
 ```
-
