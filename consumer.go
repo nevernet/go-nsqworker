@@ -55,7 +55,7 @@ func NewNsqConsumer(config *NsqConsumerConfig, nsqConfig *nsq.Config) *NsqConsum
 		if err != nil {
 			panic(err.Error())
 		}
-		nsqConsumer.AddConcurrentHandlers(v, config.ConCurrentCount)
+		nsqConsumer.AddHandler(v)
 		nsqConsumer.ChangeMaxInFlight(config.ConCurrentCount)
 		nsqConsumer.ConnectToNSQD(config.Addr)
 
