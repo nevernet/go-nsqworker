@@ -57,8 +57,7 @@ func NewNsqConsumer(config *NsqConsumerConfig, nsqConfig *nsq.Config) *NsqConsum
 		}
 		// nsqConsumer.AddHandler(v)
 		nsqConsumer.AddConcurrentHandlers(v, config.ConCurrentCount)
-		nsqConsumer.ChangeMaxInFlight(config.ConCurrentCount)
-		nsqConsumer.ConnectToNSQD(config.Addr)
+		nsqConsumer.ConnectToNSQLookupd(config.Addr)
 
 		consumer.consumers = append(consumer.consumers, nsqConsumer)
 	}
