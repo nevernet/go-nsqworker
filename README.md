@@ -72,7 +72,7 @@ type CqMailHandler struct {
 
 func init() {
 	//register your worker
-	nsqworker.RegisterHandler("cqMail", &CqMailHandler{})
+	nsqworker.RegisterConcurrentHandler("cqMail", &CqMailHandler{}, 10)
 }
 
 //implement HandleMessage

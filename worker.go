@@ -26,6 +26,7 @@ type NsqHandler interface {
 }
 
 var handlerMap = make(map[string]NsqHandler)
+var handlerConCurrentMap = make(map[string]int)
 
 // RegisterHandler is func for register the handler
 func RegisterHandler(handlerName string, handler NsqHandler) {
@@ -34,9 +35,24 @@ func RegisterHandler(handlerName string, handler NsqHandler) {
 	}
 
 	handlerMap[handlerName] = handler
+	handlerConCurrentMap[handlerName] = 1
+}
+
+// RegisterConcurrentHandler Register handler with concurrent
+func RegisterConcurrentHandler(handlerName string, handler NsqHandler, conCurrent int) {
+	if _, ok := handlerMap[handlerName]; ok {
+		panic(fmt.Sprintf("worker name:[%s] has been registered.", handlerName))
+	}
+
+	handlerMap[handlerName] = handler
+	handlerConCurrentMap[handlerName] = conCurrent
 }
 
 // GetHandlers 获取所有已经注册的handlers
 func GetHandlers() map[string]NsqHandler {
 	return handlerMap
+}
+
+func GetHandlerConCurrent() map[string]int {
+	return handlerConCurrentMap
 }

@@ -20,9 +20,13 @@ import (
 
 // NsqConsumerConfig ...
 type NsqConsumerConfig struct {
-	Addr            string
-	LookupdAddr     string
-	Topic           string
+	Addr        string
+	LookupdAddr string
+
+	// Deprecated: it will be dropped in the future version
+	Topic string
+
+	// Deprecated: it will be dropped in the future version
 	ConCurrentCount int
 }
 
@@ -36,6 +40,8 @@ var (
 )
 
 // NewNsqConsumerConfig ...
+// Param: topic  the topic wil be dropped in the future version
+// Param: conCurrentCount  the conCurrentCount wil be dropped in the future version
 func NewNsqConsumerConfig(addr, lookupdAddr, topic string, conCurrentCount int) *NsqConsumerConfig {
 	config := &NsqConsumerConfig{
 		Addr:            addr,
@@ -49,6 +55,7 @@ func NewNsqConsumerConfig(addr, lookupdAddr, topic string, conCurrentCount int) 
 
 // NewNsqConsumer get instance of consumer
 func NewNsqConsumer(config *NsqConsumerConfig, nsqConfig *nsq.Config) *NsqConsumer {
+	handlerConCurrentMap := GetHandlerConCurrent()
 	// 注册每一个worker
 	for k, v := range GetHandlers() {
 		nsqConsumer, err := nsq.NewConsumer(config.Topic, k, nsqConfig)
@@ -56,7 +63,14 @@ func NewNsqConsumer(config *NsqConsumerConfig, nsqConfig *nsq.Config) *NsqConsum
 			panic(err.Error())
 		}
 		// nsqConsumer.AddHandler(v)
-		nsqConsumer.AddConcurrentHandlers(v, config.ConCurrentCount)
+		conCurrent := 1
+		if xConCurrent, ok := handlerConCurrentMap[k]; ok {
+			conCurrent = xConCurrent
+		}
+
+		// pay attention: the handler should not be stuck, and should return value(nil) asap
+		// otherwise the concurrent policy will not work properly
+		nsqConsumer.AddConcurrentHandlers(v, conCurrent)
 		nsqConsumer.ConnectToNSQLookupd(config.LookupdAddr)
 
 		consumer.consumers = append(consumer.consumers, nsqConsumer)
