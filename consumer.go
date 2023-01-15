@@ -28,6 +28,9 @@ type NsqConsumerConfig struct {
 
 	// Deprecated: it will be dropped in the future version
 	ConCurrentCount int
+
+	// 是否使用lookupd
+	EnableLookupd int
 }
 
 // NsqConsumer type
@@ -71,7 +74,11 @@ func NewNsqConsumer(config *NsqConsumerConfig, nsqConfig *nsq.Config) *NsqConsum
 		// pay attention: the handler should not be stuck, and should return value(nil) asap
 		// otherwise the concurrent policy will not work properly
 		nsqConsumer.AddConcurrentHandlers(v, conCurrent)
-		nsqConsumer.ConnectToNSQLookupd(config.LookupdAddr)
+		if config.EnableLookupd == 1 {
+			nsqConsumer.ConnectToNSQLookupd(config.LookupdAddr)
+		} else {
+			nsqConsumer.ConnectToNSQD(config.Addr)
+		}
 
 		consumer.consumers = append(consumer.consumers, nsqConsumer)
 	}
