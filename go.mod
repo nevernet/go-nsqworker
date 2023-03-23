@@ -1,4 +1,4 @@
-module github.com/nevernet/go-nsqworker
+module github.com/nevernet/go-nsqworker/v2
 
 go 1.17
 
