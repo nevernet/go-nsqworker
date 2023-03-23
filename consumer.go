@@ -23,12 +23,6 @@ type Config struct {
 	Addr        string
 	LookupdAddr string
 
-	// Deprecated: it will be dropped in the future version
-	Topic string
-
-	// Deprecated: it will be dropped in the future version
-	ConCurrentCount int
-
 	// 是否使用lookupd
 	EnableLookupd int
 }
@@ -44,10 +38,8 @@ var (
 
 func NewConfig(addr, lookupdAddr, topic string, conCurrentCount int) *Config {
 	config := &Config{
-		Addr:            addr,
-		LookupdAddr:     lookupdAddr,
-		Topic:           topic,
-		ConCurrentCount: conCurrentCount,
+		Addr:        addr,
+		LookupdAddr: lookupdAddr,
 	}
 
 	return config
