@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/astaxie/beego v1.12.1 // indirect
-	github.com/golang/snappy v0.0.1 // indirect
-	github.com/shiena/ansicolor v0.0.0-20151119151921-a422bbe96644 // indirect
+	github.com/astaxie/beego v1.12.3 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/shiena/ansicolor v0.0.0-20200904210342-c7312218db18 // indirect
 )

@@ -17,10 +17,10 @@ func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	producer := nsqworker.NewNsqProducer(conf.Nsq.Addr, nsq.NewConfig())
+	producer := nsqworker.NewProducer(conf.Nsq.Addr, nsq.NewConfig())
 	logger.Info("nsq producer initialized.")
-	nsqConfig := nsqworker.NewNsqConsumerConfig(conf.Nsq.Addr, conf.Nsq.LookupdAddr, conf.Nsq.Topic, conf.Nsq.ConsumerCount)
-	consumer := nsqworker.NewNsqConsumer(nsqConfig, nsq.NewConfig())
+	nsqConfig := nsqworker.NewConfig(conf.Nsq.Addr, conf.Nsq.LookupdAddr, conf.Nsq.Topic, conf.Nsq.ConsumerCount)
+	consumer := nsqworker.NewConsumer(nsqConfig, nsq.NewConfig())
 	logger.Info("nsq consumer initialized.")
 
 	exitChan := make(chan struct{})
