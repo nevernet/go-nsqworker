@@ -32,9 +32,7 @@ type Consumer struct {
 	consumers []*nsq.Consumer
 }
 
-var (
-	consumer = &Consumer{}
-)
+var ()
 
 func NewConfig(addr, lookupdAddr, topic string, conCurrentCount int) *Config {
 	config := &Config{
@@ -46,6 +44,8 @@ func NewConfig(addr, lookupdAddr, topic string, conCurrentCount int) *Config {
 }
 
 func NewConsumer(config *Config, nsqConfig *nsq.Config) *Consumer {
+	consumer := &Consumer{}
+
 	handlerConCurrentMap := GetHandlerConCurrent()
 	// 注册每一个worker
 	for k, v := range GetHandlers() {
@@ -70,6 +70,7 @@ func NewConsumer(config *Config, nsqConfig *nsq.Config) *Consumer {
 
 		consumer.consumers = append(consumer.consumers, nsqConsumer)
 	}
+
 	return consumer
 }
 

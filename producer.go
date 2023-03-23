@@ -19,42 +19,47 @@ import (
 	"github.com/nsqio/go-nsq"
 )
 
-// NsqProducer type
-type NsqProducer struct {
+// Producer type
+type Producer struct {
 	config   *nsq.Config
 	Producer *nsq.Producer
 }
 
 var (
-	producer = &NsqProducer{}
+	producer *Producer
 )
 
-// NewNsqProducer get producer
-func NewNsqProducer(addr string, config *nsq.Config) *NsqProducer {
+func NewProducer(addr string, config *nsq.Config) *Producer {
 	var err error
 	nsq, err := nsq.NewProducer(addr, config)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	producer.Producer = nsq
-	producer.config = config
+	return &Producer{
+		config:   config,
+		Producer: nsq,
+	}
+}
 
-	return producer
+// NewNsqProducer get producer
+// Deprecated: use NewProducer instead
+func NewNsqProducer(addr string, config *nsq.Config) *Producer {
+	return NewProducer(addr, config)
 }
 
 // GetProducer 返回producer
-func GetProducer() *NsqProducer {
+func GetProducer() *Producer {
 	return producer
 }
 
 // Stop producer
-func (p *NsqProducer) Stop() {
+func (p *Producer) Stop() {
 	p.Producer.Stop()
 }
 
 // Publish producer
-func (p *NsqProducer) Publish(topic string, body []byte) error {
+func (p *Producer) Publish(topic string, body []byte) error {
 	err := p.Producer.Publish(topic, body)
 	if err != nil {
 		logger.Error("publish message error:[%s],[%s], [%s]", topic, string(body), err.Error())
@@ -64,7 +69,7 @@ func (p *NsqProducer) Publish(topic string, body []byte) error {
 }
 
 // MultiPublish 批量发布
-func (p *NsqProducer) MultiPublish(topic string, body [][]byte) error {
+func (p *Producer) MultiPublish(topic string, body [][]byte) error {
 	err := p.Producer.MultiPublish(topic, body)
 	if err != nil {
 		logger.Error("MultiPublish message error:[%s], [%s]", topic, err.Error())
