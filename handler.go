@@ -20,16 +20,17 @@ import (
 	"github.com/nsqio/go-nsq"
 )
 
-// NsqHandler is interface
-type NsqHandler interface {
+// Handler is interface
+type Handler interface {
 	HandleMessage(*nsq.Message) error
+	GetTopic() string
 }
 
-var handlerMap = make(map[string]NsqHandler)
+var handlerMap = make(map[string]Handler)
 var handlerConCurrentMap = make(map[string]int)
 
 // RegisterHandler is func for register the handler
-func RegisterHandler(handlerName string, handler NsqHandler) {
+func RegisterHandler(handlerName string, handler Handler) {
 	if _, ok := handlerMap[handlerName]; ok {
 		panic(fmt.Sprintf("worker name:[%s] has been registered.", handlerName))
 	}
@@ -39,7 +40,7 @@ func RegisterHandler(handlerName string, handler NsqHandler) {
 }
 
 // RegisterConcurrentHandler Register handler with concurrent
-func RegisterConcurrentHandler(handlerName string, handler NsqHandler, conCurrent int) {
+func RegisterConcurrentHandler(handlerName string, handler Handler, conCurrent int) {
 	if _, ok := handlerMap[handlerName]; ok {
 		panic(fmt.Sprintf("worker name:[%s] has been registered.", handlerName))
 	}
@@ -49,7 +50,7 @@ func RegisterConcurrentHandler(handlerName string, handler NsqHandler, conCurren
 }
 
 // GetHandlers 获取所有已经注册的handlers
-func GetHandlers() map[string]NsqHandler {
+func GetHandlers() map[string]Handler {
 	return handlerMap
 }
 

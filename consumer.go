@@ -18,8 +18,8 @@ import (
 	"github.com/nsqio/go-nsq"
 )
 
-// NsqConsumerConfig ...
-type NsqConsumerConfig struct {
+// Config ...
+type Config struct {
 	Addr        string
 	LookupdAddr string
 
@@ -33,20 +33,17 @@ type NsqConsumerConfig struct {
 	EnableLookupd int
 }
 
-// NsqConsumer type
-type NsqConsumer struct {
+// Consumer type
+type Consumer struct {
 	consumers []*nsq.Consumer
 }
 
 var (
-	consumer = &NsqConsumer{}
+	consumer = &Consumer{}
 )
 
-// NewNsqConsumerConfig ...
-// Param: topic  the topic wil be dropped in the future version
-// Param: conCurrentCount  the conCurrentCount wil be dropped in the future version
-func NewNsqConsumerConfig(addr, lookupdAddr, topic string, conCurrentCount int) *NsqConsumerConfig {
-	config := &NsqConsumerConfig{
+func NewConfig(addr, lookupdAddr, topic string, conCurrentCount int) *Config {
+	config := &Config{
 		Addr:            addr,
 		LookupdAddr:     lookupdAddr,
 		Topic:           topic,
@@ -56,12 +53,11 @@ func NewNsqConsumerConfig(addr, lookupdAddr, topic string, conCurrentCount int) 
 	return config
 }
 
-// NewNsqConsumer get instance of consumer
-func NewNsqConsumer(config *NsqConsumerConfig, nsqConfig *nsq.Config) *NsqConsumer {
+func NewConsumer(config *Config, nsqConfig *nsq.Config) *Consumer {
 	handlerConCurrentMap := GetHandlerConCurrent()
 	// 注册每一个worker
 	for k, v := range GetHandlers() {
-		nsqConsumer, err := nsq.NewConsumer(config.Topic, k, nsqConfig)
+		nsqConsumer, err := nsq.NewConsumer(v.GetTopic(), k, nsqConfig)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -86,9 +82,21 @@ func NewNsqConsumer(config *NsqConsumerConfig, nsqConfig *nsq.Config) *NsqConsum
 }
 
 // Stop consumer
-func (w *NsqConsumer) Stop() {
+func (w *Consumer) Stop() {
 	for _, v := range w.consumers {
 		v.Stop()
 		<-v.StopChan
 	}
+}
+
+// NewNsqConsumerConfig ...
+// Deprecated: use NewConfig instead
+func NewNsqConsumerConfig(addr, lookupdAddr, topic string, conCurrentCount int) *Config {
+	return NewConfig(addr, lookupdAddr, topic, conCurrentCount)
+}
+
+// NewNsqConsumer get instance of consumer
+// Deprecated: use NewConsumer instead
+func NewNsqConsumer(config *Config, nsqConfig *nsq.Config) *Consumer {
+	return NewConsumer(config, nsqConfig)
 }
