@@ -15,7 +15,8 @@
 package nsqworker
 
 import (
-	"github.com/nevernet/logger"
+	"log"
+
 	"github.com/nsqio/go-nsq"
 )
 
@@ -62,7 +63,7 @@ func (p *Producer) Stop() {
 func (p *Producer) Publish(topic string, body []byte) error {
 	err := p.Producer.Publish(topic, body)
 	if err != nil {
-		logger.Error("publish message error:[%s],[%s], [%s]", topic, string(body), err.Error())
+		log.Fatalf("publish message error:[%s],[%s], [%s]", topic, string(body), err.Error())
 	}
 
 	return err
@@ -72,7 +73,7 @@ func (p *Producer) Publish(topic string, body []byte) error {
 func (p *Producer) MultiPublish(topic string, body [][]byte) error {
 	err := p.Producer.MultiPublish(topic, body)
 	if err != nil {
-		logger.Error("MultiPublish message error:[%s], [%s]", topic, err.Error())
+		log.Fatalf("MultiPublish message error:[%s], [%s]", topic, err.Error())
 	}
 
 	return err

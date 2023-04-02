@@ -9,19 +9,18 @@ func main() {
 	var err error
 	defer func() {
 		if err != nil {
-			logger.Error(err.Error())
+			log.Fatalf(err.Error())
 		}
 
-		logger.Close()
 	}()
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	producer := nsqworker.NewProducer(conf.Nsq.Addr, nsq.NewConfig())
-	logger.Info("nsq producer initialized.")
+	log.Printf("nsq producer initialized.")
 	nsqConfig := nsqworker.NewConfig(conf.Nsq.Addr, conf.Nsq.LookupdAddr, conf.Nsq.Topic, conf.Nsq.ConsumerCount)
 	consumer := nsqworker.NewConsumer(nsqConfig, nsq.NewConfig())
-	logger.Info("nsq consumer initialized.")
+	log.Printf("nsq consumer initialized.")
 
 	exitChan := make(chan struct{})
 	signalChan := make(chan os.Signal, 1)
@@ -33,9 +32,9 @@ func main() {
 	<-exitChan
 
 	producer.Stop()
-	logger.Info("producer stopped.")
+	log.Printf("producer stopped.")
 	consumer.Stop()
-	logger.Info("consumer stopped.")
+	log.Printf("consumer stopped.")
 
 }
 ```
@@ -64,7 +63,6 @@ package handlers
 import (
 	"github.com/nsqio/go-nsq"
 	"github.com/nevernet/go-nsqworker"
-	"github.com/nevernet/logger"
 )
 
 type CqMailHandler struct {
@@ -77,7 +75,7 @@ func init() {
 
 //implement HandleMessage
 func (this *CqMailHandler) HandleMessage(message *nsq.Message) error {
-	logger.Error("handler:[%s], message:[%s]", "cqMail", string(message.Body))
+	log.Fatalf("handler:[%s], message:[%s]", "cqMail", string(message.Body))
 	return nil
 }
 
