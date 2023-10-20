@@ -31,15 +31,14 @@ var (
 )
 
 func NewProducer(addr string, config *nsq.Config) *Producer {
-	var err error
-	nsq, err := nsq.NewProducer(addr, config)
+	nsqObj, err := nsq.NewProducer(addr, config)
 	if err != nil {
 		panic(err.Error())
 	}
 
 	return &Producer{
 		config:   config,
-		Producer: nsq,
+		Producer: nsqObj,
 	}
 }
 

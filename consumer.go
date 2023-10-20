@@ -23,7 +23,7 @@ type Config struct {
 	Addr        string
 	LookupdAddr string
 
-	// 是否使用lookupd
+	// 是否使用 lookupd
 	EnableLookupd int
 }
 
@@ -32,8 +32,8 @@ type Consumer struct {
 	consumers []*nsq.Consumer
 }
 
-var ()
-
+// NewConfig 这里不再需要topic和conCurrentCount，
+// 后续handler的地方再单独定义，方便不同的handler可以走不同的topic
 func NewConfig(addr, lookupdAddr, topic string, conCurrentCount int) *Config {
 	config := &Config{
 		Addr:        addr,
@@ -46,26 +46,30 @@ func NewConfig(addr, lookupdAddr, topic string, conCurrentCount int) *Config {
 func NewConsumer(config *Config, nsqConfig *nsq.Config) *Consumer {
 	consumer := &Consumer{}
 
-	handlerConCurrentMap := GetHandlerConCurrent()
+	_handlerConCurrentMap := GetHandlerConCurrent()
 	// 注册每一个worker
 	for k, v := range GetHandlers() {
-		nsqConsumer, err := nsq.NewConsumer(v.GetTopic(), k, nsqConfig)
-		if err != nil {
-			panic(err.Error())
+		nsqConsumer, errNewConsumer := nsq.NewConsumer(v.GetTopic(), k, nsqConfig)
+		if errNewConsumer != nil {
+			panic(errNewConsumer.Error())
 		}
-		// nsqConsumer.AddHandler(v)
 		conCurrent := 1
-		if xConCurrent, ok := handlerConCurrentMap[k]; ok {
+		if xConCurrent, ok := _handlerConCurrentMap[k]; ok {
 			conCurrent = xConCurrent
 		}
 
 		// pay attention: the handler should not be stuck, and should return value(nil) asap
 		// otherwise the concurrent policy will not work properly
 		nsqConsumer.AddConcurrentHandlers(v, conCurrent)
+		var err error
 		if config.EnableLookupd == 1 {
-			nsqConsumer.ConnectToNSQLookupd(config.LookupdAddr)
+			err = nsqConsumer.ConnectToNSQLookupd(config.LookupdAddr)
 		} else {
-			nsqConsumer.ConnectToNSQD(config.Addr)
+			err = nsqConsumer.ConnectToNSQD(config.Addr)
+		}
+
+		if err != nil {
+			panic(err.Error())
 		}
 
 		consumer.consumers = append(consumer.consumers, nsqConsumer)
