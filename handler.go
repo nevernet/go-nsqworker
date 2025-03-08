@@ -16,44 +16,111 @@ package nsqworker
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/nsqio/go-nsq"
 )
 
-// Handler is interface
+// Handler 是消息处理器接口
 type Handler interface {
 	HandleMessage(*nsq.Message) error
 	GetTopic() string
 }
 
-var handlerMap = make(map[string]Handler)
-var handlerConCurrentMap = make(map[string]int)
-
-// RegisterHandler is func for register the handler
-func RegisterHandler(handlerName string, handler Handler) {
-	if _, ok := handlerMap[handlerName]; ok {
-		panic(fmt.Sprintf("worker name:[%s] has been registered.", handlerName))
-	}
-
-	handlerMap[handlerName] = handler
-	handlerConCurrentMap[handlerName] = 1
+// HandlerRegistry 处理器注册表
+type HandlerRegistry struct {
+	sync.RWMutex
+	handlers   map[string]Handler
+	concurrent map[string]int
 }
 
-// RegisterConcurrentHandler Register handler with concurrent
-func RegisterConcurrentHandler(handlerName string, handler Handler, conCurrent int) {
-	if _, ok := handlerMap[handlerName]; ok {
-		panic(fmt.Sprintf("worker name:[%s] has been registered.", handlerName))
+var (
+	// 全局处理器注册表实例
+	registry = &HandlerRegistry{
+		handlers:   make(map[string]Handler),
+		concurrent: make(map[string]int),
+	}
+)
+
+// RegisterHandler 注册消息处理器
+func RegisterHandler(handlerName string, handler Handler) error {
+	if handlerName == "" || handler == nil {
+		return fmt.Errorf("invalid handler name or handler is nil")
 	}
 
-	handlerMap[handlerName] = handler
-	handlerConCurrentMap[handlerName] = conCurrent
+	registry.Lock()
+	defer registry.Unlock()
+
+	if _, exists := registry.handlers[handlerName]; exists {
+		return fmt.Errorf("handler name:[%s] has already been registered", handlerName)
+	}
+
+	registry.handlers[handlerName] = handler
+	registry.concurrent[handlerName] = 1
+	return nil
 }
 
-// GetHandlers 获取所有已经注册的handlers
+// RegisterConcurrentHandler 注册带并发数的消息处理器
+func RegisterConcurrentHandler(handlerName string, handler Handler, concurrent int) error {
+	if handlerName == "" || handler == nil {
+		return fmt.Errorf("invalid handler name or handler is nil")
+	}
+	if concurrent < 1 {
+		return fmt.Errorf("concurrent must be greater than 0")
+	}
+
+	registry.Lock()
+	defer registry.Unlock()
+
+	if _, exists := registry.handlers[handlerName]; exists {
+		return fmt.Errorf("handler name:[%s] has already been registered", handlerName)
+	}
+
+	registry.handlers[handlerName] = handler
+	registry.concurrent[handlerName] = concurrent
+	return nil
+}
+
+// GetHandlers 获取所有已注册的处理器
 func GetHandlers() map[string]Handler {
-	return handlerMap
+	registry.RLock()
+	defer registry.RUnlock()
+
+	// 创建副本以避免外部修改
+	handlers := make(map[string]Handler, len(registry.handlers))
+	for k, v := range registry.handlers {
+		handlers[k] = v
+	}
+	return handlers
 }
 
+// GetHandlerConCurrent 获取所有处理器的并发配置
 func GetHandlerConCurrent() map[string]int {
-	return handlerConCurrentMap
+	registry.RLock()
+	defer registry.RUnlock()
+
+	// 创建副本以避免外部修改
+	concurrent := make(map[string]int, len(registry.concurrent))
+	for k, v := range registry.concurrent {
+		concurrent[k] = v
+	}
+	return concurrent
+}
+
+// UnregisterHandler 注销一个处理器
+func UnregisterHandler(handlerName string) error {
+	if handlerName == "" {
+		return fmt.Errorf("handler name cannot be empty")
+	}
+
+	registry.Lock()
+	defer registry.Unlock()
+
+	if _, exists := registry.handlers[handlerName]; !exists {
+		return fmt.Errorf("handler name:[%s] not found", handlerName)
+	}
+
+	delete(registry.handlers, handlerName)
+	delete(registry.concurrent, handlerName)
+	return nil
 }
