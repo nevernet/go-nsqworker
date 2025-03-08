@@ -91,13 +91,19 @@ func NewConsumer(config *Config, nsqConfig *nsq.Config) (*Consumer, error) {
 // initConsumers 初始化所有消费者
 func (c *Consumer) initConsumers() error {
 	handlers := GetHandlers()
+	// 如果没有注册任何处理器，直接返回成功
 	if len(handlers) == 0 {
-		return fmt.Errorf("no handlers registered")
+		return nil
 	}
 
 	concurrents := GetHandlerConCurrent()
 	for name, handler := range handlers {
-		if err := c.addConsumer(name, handler, concurrents[name]); err != nil {
+		// 获取并发数，如果未配置则默认为1
+		concurrent := 1
+		if val, exists := concurrents[name]; exists {
+			concurrent = val
+		}
+		if err := c.addConsumer(name, handler, concurrent); err != nil {
 			return fmt.Errorf("failed to add consumer %s: %v", name, err)
 		}
 	}
@@ -157,6 +163,11 @@ func (c *Consumer) Stop() {
 			<-cons.StopChan
 		}(consumer)
 	}
+	// 这里使用协程来停止每个消费者是为了实现并行退出，提高效率。
+	// 1. 并行停止：同时停止多个消费者，而不是串行等待每个消费者停止
+	// 2. 非阻塞：每个消费者的Stop()调用和等待StopChan都可能需要一定时间
+	// 3. 优雅关闭：通过等待StopChan确保每个消费者完全停止所有处理
+	// 4. 资源释放：使用WaitGroup确保所有消费者都已正确停止后才继续执行
 
 	// 等待所有消费者停止，或者超时
 	done := make(chan struct{})
