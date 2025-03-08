@@ -127,8 +127,18 @@ func (c *Consumer) addConsumer(name string, handler Handler, concurrent int) err
 	go func() {
 		var err error
 		if c.config.EnableLookupd {
+			if c.config.LookupdAddr == "" {
+				err = fmt.Errorf("lookupd address is empty")
+				errChan <- err
+				return
+			}
 			err = consumer.ConnectToNSQLookupd(c.config.LookupdAddr)
 		} else {
+			if c.config.Addr == "" {
+				err = fmt.Errorf("nsqd address is empty")
+				errChan <- err
+				return
+			}
 			err = consumer.ConnectToNSQD(c.config.Addr)
 		}
 		errChan <- err
