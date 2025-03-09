@@ -70,7 +70,7 @@ func main() {
 		nsqConfig.Topic,
 		nsqConfig.ConsumerCount,
 	)
-	
+
 	// 初始化消费者
 	var consumer *nsqworker.Consumer
 	consumer, err = nsqworker.NewConsumer(consumerConfig, nsq.NewConfig())

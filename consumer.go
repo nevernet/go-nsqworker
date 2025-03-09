@@ -16,7 +16,10 @@ package nsqworker
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -52,12 +55,23 @@ type Consumer struct {
 	consumers []*nsq.Consumer
 	ctx       context.Context
 	cancel    context.CancelFunc
-	wg        sync.WaitGroup
 }
 
 // NewConfig 创建新的配置
 func NewConfig(addr, lookupdAddr string) *Config {
 	config := DefaultConfig()
+
+	// 验证地址格式
+	if addr != "" && !isValidAddress(addr) {
+		// 如果地址格式不正确，记录警告但不阻止创建
+		fmt.Printf("Warning: invalid nsqd address format: %s, should be host:port\n", addr)
+	}
+
+	if lookupdAddr != "" && !isValidAddress(lookupdAddr) {
+		// 如果地址格式不正确，记录警告但不阻止创建
+		fmt.Printf("Warning: invalid lookupd address format: %s, should be host:port\n", lookupdAddr)
+	}
+
 	config.Addr = addr
 	config.LookupdAddr = lookupdAddr
 	return config
@@ -66,16 +80,48 @@ func NewConfig(addr, lookupdAddr string) *Config {
 // NewConsumer 创建新的消费者
 func NewConsumer(config *Config, nsqConfig *nsq.Config) (*Consumer, error) {
 	if config == nil {
-		return nil, fmt.Errorf("config cannot be nil")
+		return nil, errors.New("config cannot be nil")
 	}
 	if nsqConfig == nil {
-		return nil, fmt.Errorf("nsqConfig cannot be nil")
+		return nil, errors.New("nsqConfig cannot be nil")
 	}
+
+	// 验证地址配置
+	if !config.EnableLookupd {
+		// 如果不使用Lookupd，则必须提供有效的NSQ地址
+		if config.Addr == "" {
+			return nil, errors.New("nsqd address is required when not using lookupd")
+		}
+		if !isValidAddress(config.Addr) {
+			return nil, fmt.Errorf("invalid nsqd address format: %s, should be host:port", config.Addr)
+		}
+	} else {
+		// 如果使用Lookupd，则必须提供有效的Lookupd地址
+		if config.LookupdAddr == "" {
+			return nil, errors.New("lookupd address is required when using lookupd")
+		}
+		if !isValidAddress(config.LookupdAddr) {
+			return nil, fmt.Errorf("invalid lookupd address format: %s, should be host:port", config.LookupdAddr)
+		}
+	}
+
+	// 创建Config的副本，避免外部修改影响内部状态
+	configCopy := &Config{
+		Addr:           config.Addr,
+		LookupdAddr:    config.LookupdAddr,
+		EnableLookupd:  config.EnableLookupd,
+		ConnectTimeout: config.ConnectTimeout,
+		RetryInterval:  config.RetryInterval,
+	}
+
+	// 创建nsqConfig的副本
+	nsqConfigCopy := nsq.NewConfig()
+	*nsqConfigCopy = *nsqConfig
 
 	ctx, cancel := context.WithCancel(context.Background())
 	consumer := &Consumer{
-		config:    config,
-		nsqConfig: nsqConfig,
+		config:    configCopy,
+		nsqConfig: nsqConfigCopy,
 		ctx:       ctx,
 		cancel:    cancel,
 	}
@@ -132,10 +178,22 @@ func (c *Consumer) addConsumer(name string, handler Handler, concurrent int) err
 				errChan <- err
 				return
 			}
+			// 验证地址格式
+			if !isValidAddress(c.config.LookupdAddr) {
+				err = fmt.Errorf("invalid lookupd address format: %s, should be host:port", c.config.LookupdAddr)
+				errChan <- err
+				return
+			}
 			err = consumer.ConnectToNSQLookupd(c.config.LookupdAddr)
 		} else {
 			if c.config.Addr == "" {
 				err = fmt.Errorf("nsqd address is empty")
+				errChan <- err
+				return
+			}
+			// 验证地址格式
+			if !isValidAddress(c.config.Addr) {
+				err = fmt.Errorf("invalid nsqd address format: %s, should be host:port", c.config.Addr)
 				errChan <- err
 				return
 			}
@@ -157,6 +215,30 @@ func (c *Consumer) addConsumer(name string, handler Handler, concurrent int) err
 
 	c.consumers = append(c.consumers, consumer)
 	return nil
+}
+
+// isValidAddress 验证地址格式是否正确
+func isValidAddress(addr string) bool {
+	// 简单验证地址格式，确保包含主机和端口
+	// 格式应该是 host:port
+	if addr == "" {
+		return false
+	}
+
+	// 检查地址中是否包含冒号，并且冒号后面有端口号
+	parts := strings.Split(addr, ":")
+	if len(parts) != 2 {
+		return false
+	}
+
+	// 检查主机部分不为空
+	if parts[0] == "" {
+		return false
+	}
+
+	// 检查端口部分是数字
+	_, err := strconv.Atoi(parts[1])
+	return err == nil
 }
 
 // Stop 优雅停止所有消费者
