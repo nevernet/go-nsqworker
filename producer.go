@@ -39,7 +39,7 @@ type ProducerConfig struct {
 func DefaultProducerConfig() *ProducerConfig {
 	return &ProducerConfig{
 		ConnectTimeout: 30 * time.Second,
-		RetryCount:     3,
+		RetryCount:     10,
 		RetryInterval:  1 * time.Second,
 	}
 }
@@ -66,8 +66,26 @@ func NewProducer(config *ProducerConfig, nsqConfig *nsq.Config) (*Producer, erro
 		return nil, fmt.Errorf("nsqConfig cannot be nil")
 	}
 
+	// 检查Addr是否为空
+	if config.Addr == "" {
+		return nil, fmt.Errorf("config.Addr cannot be empty")
+	}
+
+	// 验证地址格式
+	if !IsValidAddress(config.Addr) {
+		return nil, fmt.Errorf("invalid NSQ server address format: %s", config.Addr)
+	}
+
+	// 复制config，避免外部修改
+	configCopy := &ProducerConfig{
+		Addr:           config.Addr,
+		ConnectTimeout: config.ConnectTimeout,
+		RetryCount:     config.RetryCount,
+		RetryInterval:  config.RetryInterval,
+	}
+
 	p := &Producer{
-		config:  config,
+		config:  configCopy,
 		nsqConf: nsqConfig,
 	}
 
@@ -80,6 +98,16 @@ func NewProducer(config *ProducerConfig, nsqConfig *nsq.Config) (*Producer, erro
 
 // connect 连接到NSQ服务器
 func (p *Producer) connect() error {
+	// 再次检查地址是否为空
+	if p.config.Addr == "" {
+		return fmt.Errorf("NSQ server address is empty")
+	}
+
+	// 验证地址格式
+	if !IsValidAddress(p.config.Addr) {
+		return fmt.Errorf("invalid NSQ server address format: %s", p.config.Addr)
+	}
+
 	nsqProducer, err := nsq.NewProducer(p.config.Addr, p.nsqConf)
 	if err != nil {
 		return fmt.Errorf("failed to create producer: %v", err)
@@ -173,7 +201,21 @@ func InitDefaultProducer(config *ProducerConfig, nsqConfig *nsq.Config) error {
 
 // Deprecated: use NewProducer instead
 func NewNsqProducer(addr string, config *nsq.Config) *Producer {
-	p, err := NewProducer(&ProducerConfig{Addr: addr}, config)
+	// 检查地址是否为空
+	if addr == "" {
+		panic("NSQ server address cannot be empty")
+	}
+
+	// 验证地址格式
+	if !IsValidAddress(addr) {
+		panic(fmt.Sprintf("invalid NSQ server address format: %s", addr))
+	}
+
+	// 使用默认配置
+	producerConfig := DefaultProducerConfig()
+	producerConfig.Addr = addr
+
+	p, err := NewProducer(producerConfig, config)
 	if err != nil {
 		panic(err)
 	}

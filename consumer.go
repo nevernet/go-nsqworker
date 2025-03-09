@@ -219,6 +219,12 @@ func (c *Consumer) addConsumer(name string, handler Handler, concurrent int) err
 
 // isValidAddress 验证地址格式是否正确
 func isValidAddress(addr string) bool {
+	return IsValidAddress(addr)
+}
+
+// IsValidAddress 验证地址格式是否正确（公共函数）
+// 格式应该是 host:port，主机部分不能为空，端口部分必须是数字
+func IsValidAddress(addr string) bool {
 	// 简单验证地址格式，确保包含主机和端口
 	// 格式应该是 host:port
 	if addr == "" {
