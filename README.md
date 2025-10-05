@@ -24,7 +24,9 @@ import (
 
 	"github.com/nsqio/go-nsq"
 	"github.com/nevernet/go-nsqworker/v3"
-	"your-project/handlers"
+
+	// 这里要导入你自己的 handlers 包
+	_ "your-project/handlers"
 )
 
 func main() {
@@ -38,47 +40,26 @@ func main() {
 	// 设置使用所有 CPU 核心
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	// 初始化 handlers
-	handlers.Start()
+	// 配置信息 应该放到自己的config里面
+	// nsqConfig := &struct {
+	// 	Addr          string
+	// 	LookupdAddr   string
+	// 	Topic         string
+	// 	ConsumerCount int
+	// }{
+	// 	Addr:          "127.0.0.1:4150",        // NSQ 地址
+	// 	LookupdAddr:   "127.0.0.1:4161",        // NSQ Lookupd 地址
+	// 	Topic:         "test_topic",            // 主题
+	// 	ConsumerCount: 10,                      // 消费者数量
+	// }
 
-	// 配置信息
-	nsqConfig := &struct {
-		Addr          string
-		LookupdAddr   string
-		Topic         string
-		ConsumerCount int
-	}{
-		Addr:          "127.0.0.1:4150",        // NSQ 地址
-		LookupdAddr:   "127.0.0.1:4161",        // NSQ Lookupd 地址
-		Topic:         "test_topic",            // 主题
-		ConsumerCount: 10,                      // 消费者数量
-	}
-
-	// 初始化生产者
-	var producer *nsqworker.Producer
-	producer, err = nsqworker.NewProducer(nsqConfig.Addr, nsq.NewConfig())
+	// 初始化 NSQ 配置, 导入自己的config包
+	nsqWrapper, err := config.NewNSQ()
 	if err != nil {
-		log.Fatalf("Failed to create producer: %v", err)
+		log.Error("failed to create nsq wrapper: %v", err)
 		return
 	}
 	log.Printf("NSQ producer initialized")
-
-	// 初始化消费者配置
-	consumerConfig := nsqworker.NewConfig(
-		nsqConfig.Addr,
-		nsqConfig.LookupdAddr,
-		nsqConfig.Topic,
-		nsqConfig.ConsumerCount,
-	)
-
-	// 初始化消费者
-	var consumer *nsqworker.Consumer
-	consumer, err = nsqworker.NewConsumer(consumerConfig, nsq.NewConfig())
-	if err != nil {
-		log.Fatalf("Failed to create consumer: %v", err)
-		return
-	}
-	log.Printf("NSQ consumer initialized")
 
 	// 优雅退出
 	exitChan := make(chan struct{})
@@ -91,58 +72,18 @@ func main() {
 	<-exitChan
 
 	// 停止服务
-	producer.Stop()
-	log.Printf("Producer stopped")
-	consumer.Stop()
-	log.Printf("Consumer stopped")
+	config.CloseNSQ()
 }
 ```
 
-### 2. 创建 handlers 目录
+## nsq-wrapper.go
+[查看代码](docs/nsq-wrapper.md)
 
-```bash
-mkdir handlers
-```
+## nsq-config.go
+[查看代码](docs/nsq-config.md)
 
-### 3. 创建 handlers/bootstrap.go
-
-```go
-package handlers
-
-// Start 初始化所有 handlers
-// 这个方法会在 main 函数中被调用
-func Start() {
-	// 这里可以添加一些初始化代码
-}
-```
-
-### 4. 创建自定义 handler (handlers/mail_handler.go)
-
-```go
-package handlers
-
-import (
-	"log"
-
-	"github.com/nsqio/go-nsq"
-	"github.com/nevernet/go-nsqworker/v3"
-)
-
-// MailHandler 邮件处理器
-type MailHandler struct {
-}
-
-func init() {
-	// 注册处理器，最后一个参数是并发数
-	nsqworker.RegisterConcurrentHandler("mail", &MailHandler{}, 10)
-}
-
-// HandleMessage 实现消息处理接口
-func (h *MailHandler) HandleMessage(message *nsq.Message) error {
-	log.Printf("Handler: [mail], Message: [%s]", string(message.Body))
-	return nil
-}
-```
+## 创建workere(handlers/approve_post_worker.go)
+[查看代码](docs/worker.md)
 
 ## 配置说明
 
